@@ -1,0 +1,4 @@
+.DS_Store
+*.vvp
+*.gprj.user
+spi_slave/**/impl/
