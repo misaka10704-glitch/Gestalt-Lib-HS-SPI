@@ -19,6 +19,9 @@ module spi_slave_top #(
     output wire                     tx_valid
 );
 
+
+
+
     wire cs_active;
     wire cs_start;
     wire cs_end;
@@ -33,10 +36,14 @@ module spi_slave_top #(
     wire                  tx_load;
     wire [DATA_WIDTH-1:0] tx_byte;
 
-    spi_phy #(
+
+
+
+
+    spi_controller #(
         .CPOL (CPOL),
         .CPHA (CPHA)
-    ) u_phy (
+    ) u_controller (
         .clk        (clk),
         .rst_n      (rst_n),
         .sclk       (sclk),
@@ -52,10 +59,10 @@ module spi_slave_top #(
         .tx_bit     (tx_bit)
     );
 
-    spi_byte_engine #(
+    spi_shift_register #(
         .DATA_WIDTH (DATA_WIDTH),
         .LSB_FIRST  (LSB_FIRST)
-    ) u_byte (
+    ) u_shift_register (
         .clk        (clk),
         .rst_n      (rst_n),
         .cs_active  (cs_active),
@@ -71,9 +78,9 @@ module spi_slave_top #(
         .tx_bit     (tx_bit)
     );
 
-    spi_user_if #(
+    spi_system_interface #(
         .DATA_WIDTH (DATA_WIDTH)
-    ) u_if (
+    ) u_system_interface (
         .clk        (clk),
         .rst_n      (rst_n),
         .cs_active  (cs_active),

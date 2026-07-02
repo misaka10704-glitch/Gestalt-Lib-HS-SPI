@@ -1,5 +1,5 @@
-// System-side byte interface: RX valid pulse and TX load handshake.
-module spi_user_if #(
+// System-side parallel interface: RX valid pulse and TX load handshake.
+module spi_system_interface #(
     parameter DATA_WIDTH = 8
 ) (
     input  wire                     clk,

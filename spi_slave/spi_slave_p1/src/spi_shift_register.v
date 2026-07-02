@@ -1,5 +1,5 @@
-// SPI byte engine: shift registers and bit counting driven by PHY strobes.
-module spi_byte_engine #(
+// SPI shift register: RX/TX shift registers and bit counting driven by controller strobes.
+module spi_shift_register #(
     parameter DATA_WIDTH = 8,
     parameter LSB_FIRST  = 1'b0
 ) (

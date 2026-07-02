@@ -1,6 +1,6 @@
-// SPI PHY: pin sync, CS frame detect, mode-dependent sample/shift strobes, MISO drive.
-// Runs in system clock domain; byte logic stays mode-agnostic via strobes.
-module spi_phy #(
+// SPI controller: pin sync, CS frame detect, mode-dependent sample/shift strobes, MISO drive.
+// Runs in system clock domain; shift register logic stays mode-agnostic via strobes.
+module spi_controller #(
     parameter CPOL = 1'b0,
     parameter CPHA = 1'b0
 ) (
