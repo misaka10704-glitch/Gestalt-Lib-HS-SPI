@@ -13,6 +13,8 @@ module spi_shift_register #(
     input  wire                     shift_stb,
     input  wire                     mosi_s,
 
+
+
     input  wire                     tx_load,
     input  wire [DATA_WIDTH-1:0]    tx_byte,
 
