@@ -27,7 +27,7 @@ reg [3:0] rx_cnt; //计数，待优化
 always @(posedge clk or negedge rst_n) begin
     if(!rst_n) rx_cnt<=0;
     else if(sample_stb & cs_active &(rx_cnt<DATA_WIDTH-1)) rx_cnt<=rx_cnt+1;
-    else if(rx_cnt==DATA_WIDTH-1) rx_cnt<=0;
+    else if(sample_stb & cs_active &(rx_cnt==DATA_WIDTH-1)) rx_cnt<=0;
 end
 //计数
 
@@ -46,29 +46,30 @@ end
 //移位
 */
 
+
+
 always @(posedge clk or negedge rst_n) begin
     if(!rst_n) rx_register_fluent<=0;
     else if(sample_stb & cs_active & ~LSB_FIRST) rx_register_fluent <= {rx_register_fluent[DATA_WIDTH-2:0],mosi};
     else if(sample_stb & cs_active & LSB_FIRST) rx_register_fluent <= {mosi,rx_register_fluent[DATA_WIDTH-1:1]};
 end
-//采样+移位;同时进行
-
+//采样+移位;同时进行 (这里都是fluent)
 
 
 always @(posedge clk or negedge rst_n) begin
     if(!rst_n)rx_register_solid<=0;
-    else if(rx_cnt==DATA_WIDTH-1)rx_register_solid<=rx_register_fluent;
-    else rx_register_solid<=rx_register_solid;
+    else if((rx_cnt==0) & (sample_stb ==0) & cs_active)begin
+        rx_register_solid<=rx_register_fluent;
+        byte_done <=1;
+    end
+    else if((rx_cnt==0) & (sample_stb ==1) & cs_active)begin
+        rx_register_solid<=rx_register_solid;
+        byte_done <=0;
+    end
 end
-//固化register;这里有问题
+//固化register;改cnt可以延长byte_done存在的时间
 
 
-always @(posedge clk or negedge rst_n) begin
-    if(!rst_n)byte_done<=0;
-    else if(rx_cnt<DATA_WIDTH-1)byte_done<=0;
-    else byte_done<=1;
-end
-//整存flag
 
 
 
