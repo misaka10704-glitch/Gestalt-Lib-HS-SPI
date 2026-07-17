@@ -1,0 +1,17 @@
+{
+    "verilog.linting.linter": "iverilog",
+    "verilog.linting.iverilog.runAtFileLocation": false,
+    "verilog.linting.iverilog.arguments": "-g2012 -Wall -I${workspaceFolder}/spi_slave/spi_slave_cursor/src -I${workspaceFolder}/spi_slave/spi_slave_cursor/tb",
+    "[verilog]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true
+    },
+    "[systemverilog]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true
+    },
+    "files.associations": {
+        "*.v": "verilog",
+        "*.sv": "systemverilog"
+    }
+}

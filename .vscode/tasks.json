@@ -1,0 +1,45 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "SPI: Simulate",
+            "type": "shell",
+            "command": "make sim",
+            "options": {
+                "cwd": "${workspaceFolder}/spi_slave/spi_slave_cursor"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "SPI: Open Waveform",
+            "type": "shell",
+            "command": "make wave",
+            "options": {
+                "cwd": "${workspaceFolder}/spi_slave/spi_slave_cursor"
+            },
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "SPI: Clean",
+            "type": "shell",
+            "command": "make clean",
+            "options": {
+                "cwd": "${workspaceFolder}/spi_slave/spi_slave_cursor"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

@@ -56,6 +56,11 @@ module tb_spi_slave;
     );
 
     initial begin
+        $dumpfile("wave.vcd");
+        $dumpvars(0, tb_spi_slave);
+    end
+
+    initial begin
         clk = 1'b0;
         forever #(CLK_PERIOD / 2) clk = ~clk;
     end

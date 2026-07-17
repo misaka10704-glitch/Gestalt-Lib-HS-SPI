@@ -1,4 +1,23 @@
 .DS_Store
 *.vvp
 *.gprj.user
-spi_slave/**/impl/
+.cursor/
+
+# local IDE (optional keep; ignore user-specific if needed)
+# .vscode/
+
+# sim / build artifacts
+**/impl/
+**/sim/
+**/build/
+**/cmake-build-*/
+*.bin
+*.binx
+*.fs
+*.db
+*.vcd
+*.out
+*.o
+*.elf
+*.hex
+*.map
