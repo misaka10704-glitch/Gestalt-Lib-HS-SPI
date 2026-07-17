@@ -1,41 +1,43 @@
-# Async FIFO timing simulation (Icarus Verilog + GTKWave)
-# Usage:
-#   make sim              # compile + run tb_async_fifo
-#   make wave             # open waveform
+# Async FIFO sim (Icarus + optional GTKWave)
+#   make sim1 / wave1   — empty/full  → sim/wave1.vcd
+#   make sim2 / wave2   — read/write  → sim/wave2.vcd
+#   make sim            — both
 #   make clean
 
-TB      ?= tb_async_fifo
-TOP     ?= $(TB)
-SIM_DIR := sim
-BUILD   := $(SIM_DIR)/$(TB).out
-
-RTL_SRCS := async_fifo.v
-TB_SRCS  := tb/$(TB).v
-
+SIM_DIR  := sim
 IVERILOG := iverilog
-IVFLAGS  := -g2012 -Wall -o $(BUILD)
 VVP      := vvp
 GTKWAVE  := gtkwave
+IVFLAGS  := -g2012 -Wall
 
-.PHONY: all sim wave compile run clean dirs
+RTL := async_fifo.v tb/wave_probes.v
+
+.PHONY: all sim sim1 sim2 wave1 wave2 compile1 compile2 clean dirs
 
 all: sim
 
 dirs:
 	@mkdir -p $(SIM_DIR)
 
-compile: dirs $(BUILD)
+$(SIM_DIR)/tb_wave1.out: async_fifo.v tb/wave_probes.v tb/tb_wave1.v | dirs
+	$(IVERILOG) $(IVFLAGS) -o $@ async_fifo.v tb/wave_probes.v tb/tb_wave1.v
 
-$(BUILD): $(RTL_SRCS) $(TB_SRCS)
-	$(IVERILOG) $(IVFLAGS) $(RTL_SRCS) $(TB_SRCS)
+$(SIM_DIR)/tb_wave2.out: async_fifo.v tb/wave_probes.v tb/tb_wave2.v | dirs
+	$(IVERILOG) $(IVFLAGS) -o $@ async_fifo.v tb/wave_probes.v tb/tb_wave2.v
 
-run: compile
-	cd $(SIM_DIR) && $(VVP) ../$(BUILD) -l $(TB).log
+sim1: $(SIM_DIR)/tb_wave1.out
+	cd $(SIM_DIR) && $(VVP) ../$(SIM_DIR)/tb_wave1.out
 
-sim: run
+sim2: $(SIM_DIR)/tb_wave2.out
+	cd $(SIM_DIR) && $(VVP) ../$(SIM_DIR)/tb_wave2.out
 
-wave: sim
-	$(GTKWAVE) $(SIM_DIR)/wave.vcd wave.gtkw &
+sim: sim1 sim2
+
+wave1: sim1
+	$(GTKWAVE) $(SIM_DIR)/wave1.vcd &
+
+wave2: sim2
+	$(GTKWAVE) $(SIM_DIR)/wave2.vcd &
 
 clean:
 	rm -rf $(SIM_DIR)

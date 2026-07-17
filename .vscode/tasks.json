@@ -2,43 +2,35 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "FIFO: Simulate",
+            "label": "FIFO: Wave1 empty/full",
             "type": "shell",
-            "command": "make sim",
-            "options": {
-                "cwd": "${workspaceFolder}/async_fifo"
-            },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "clear": true
-            },
+            "command": "make sim1",
+            "options": { "cwd": "${workspaceFolder}/async_fifo" },
+            "group": { "kind": "build", "isDefault": true },
+            "presentation": { "reveal": "always", "panel": "shared", "clear": true },
             "problemMatcher": []
         },
         {
-            "label": "FIFO: Open Waveform (GTKWave)",
+            "label": "FIFO: Wave2 xfer",
             "type": "shell",
-            "command": "make wave",
-            "options": {
-                "cwd": "${workspaceFolder}/async_fifo"
-            },
-            "presentation": {
-                "reveal": "silent",
-                "panel": "shared"
-            },
+            "command": "make sim2",
+            "options": { "cwd": "${workspaceFolder}/async_fifo" },
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "FIFO: Sim both",
+            "type": "shell",
+            "command": "make sim",
+            "options": { "cwd": "${workspaceFolder}/async_fifo" },
+            "presentation": { "reveal": "always", "panel": "shared", "clear": true },
             "problemMatcher": []
         },
         {
             "label": "FIFO: Clean",
             "type": "shell",
             "command": "make clean",
-            "options": {
-                "cwd": "${workspaceFolder}/async_fifo"
-            },
+            "options": { "cwd": "${workspaceFolder}/async_fifo" },
             "problemMatcher": []
         }
     ]
