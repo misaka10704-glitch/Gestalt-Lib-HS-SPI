@@ -2,11 +2,11 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "SPI: Simulate",
+            "label": "FIFO: Simulate",
             "type": "shell",
             "command": "make sim",
             "options": {
-                "cwd": "${workspaceFolder}/spi_slave/spi_slave_cursor"
+                "cwd": "${workspaceFolder}/async_fifo"
             },
             "group": {
                 "kind": "build",
@@ -20,11 +20,11 @@
             "problemMatcher": []
         },
         {
-            "label": "SPI: Open Waveform",
+            "label": "FIFO: Open Waveform (GTKWave)",
             "type": "shell",
             "command": "make wave",
             "options": {
-                "cwd": "${workspaceFolder}/spi_slave/spi_slave_cursor"
+                "cwd": "${workspaceFolder}/async_fifo"
             },
             "presentation": {
                 "reveal": "silent",
@@ -33,11 +33,11 @@
             "problemMatcher": []
         },
         {
-            "label": "SPI: Clean",
+            "label": "FIFO: Clean",
             "type": "shell",
             "command": "make clean",
             "options": {
-                "cwd": "${workspaceFolder}/spi_slave/spi_slave_cursor"
+                "cwd": "${workspaceFolder}/async_fifo"
             },
             "problemMatcher": []
         }

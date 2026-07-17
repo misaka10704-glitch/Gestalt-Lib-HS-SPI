@@ -1,6 +1,7 @@
 {
     "recommendations": [
         "mshr-h.veriloghdl",
-        "eirikpre.systemverilog"
+        "eirikpre.systemverilog",
+        "surfer-project.surfer"
     ]
 }

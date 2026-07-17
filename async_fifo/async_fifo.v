@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module async_fifo#(
     parameter DATA_WIDTH = 1, //数据宽度，一个地址的数据位有多少bit
     parameter DATA_DEEPTH = 8//移位上限
