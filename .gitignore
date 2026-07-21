@@ -1,14 +1,17 @@
 .DS_Store
+
+# NOTE: canonical copy — keep in sync: cp internal/.gitignore .gitignore
+
+# IDE / local workspace
+.workspace/
+.cursor/
+.vscode/
+
+# Verilog / FPGA build & sim artifacts
 *.vvp
 *.gprj.user
-.cursor/
-
-# local IDE (optional keep; ignore user-specific if needed)
-# .vscode/
-
-# sim / build artifacts
 **/impl/
-**/sim/
+sim/**/out/
 **/build/
 **/cmake-build-*/
 *.bin
@@ -21,3 +24,20 @@
 *.elf
 *.hex
 *.map
+*.log
+*.rpt.*
+*.timing_paths
+*.pin.html
+*.power.html
+*.tr.html
+*.tr_cata.html
+*.tr_content.html
+*.syn_resource.html
+*.syn.rpt.html
+*.vg
+
+# IDE project files (archive trees)
+.idea/
+*.gprj
+*.prj
+project.ini
