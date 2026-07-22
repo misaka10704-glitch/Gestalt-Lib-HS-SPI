@@ -1,0 +1,41 @@
+//============================================================
+// 逻辑派 FPGA-G1 · lab_sys_ext（飞线非理想 SPI）
+// 顶层：lab_sys_ext
+//
+// 飞线脚选自正面顶排「FPGA 排针」连续四脚（功能框图-T）：
+//   … PB5 | G15 | G14 | G16 | H15 | L9 …
+//   spi_sclk_o (G15) ──► spi_sclk_i (G14)   // 邻脚短接
+//   spi_mosi_o (G16) ──► spi_mosi_i (H15)   // 邻脚短接
+//
+// 避开：C10/T10(SSPI)、N6(LED)、F12(UART)、数码管/USB/HDMI
+//============================================================
+
+IO_LOC "sys_clk" T7;
+IO_PORT "sys_clk" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
+
+IO_LOC "key[0]" D11;
+IO_PORT "key[0]" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
+IO_LOC "key[1]" F10;
+IO_PORT "key[1]" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
+
+IO_LOC "led[0]" R9;
+IO_PORT "led[0]" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "led[1]" R7;
+IO_PORT "led[1]" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "led[2]" N6;
+IO_PORT "led[2]" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "led[3]" P7;
+IO_PORT "led[3]" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8 BANK_VCCIO=3.3;
+
+IO_LOC "uart_tx" F12;
+IO_PORT "uart_tx" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8 BANK_VCCIO=3.3;
+
+// 顶排相邻四脚：G15↔G14、G16↔H15
+IO_LOC "spi_sclk_o" G15;
+IO_PORT "spi_sclk_o" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "spi_sclk_i" G14;
+IO_PORT "spi_sclk_i" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
+IO_LOC "spi_mosi_o" G16;
+IO_PORT "spi_mosi_o" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "spi_mosi_i" H15;
+IO_PORT "spi_mosi_i" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;

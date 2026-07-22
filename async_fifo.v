@@ -35,7 +35,9 @@ reg [addr_width:0] rptr;
 integer  i;
 //非满时，memory正常写；不过之后要做个预警位（内部）
 //由于两个都在rst_n=0时激活，因此只在一处写memory复位
-always@(posedge wclk or negedge rst_n)begin
+always@(posedge wclk or negedge rst_n)begin : wport
+    //加法结果比指针多1bit，切片写回（环绕），消除 EX3791
+    reg [addr_width+1:0] wsum;
     if(!rst_n) begin
         for (i = 0; i < DATA_DEEPTH; i = i + 1)begin
             memory[i] <= {DATA_WIDTH{1'b0}};end 
@@ -45,18 +47,21 @@ always@(posedge wclk or negedge rst_n)begin
     else if(!full && wr_en) begin
         memory[wptr[addr_width-1:0]]<=wdata;
         //这里不能直接用ptr，因为为了适配gray，ptr比真实要求多一个bit
-        wptr<=wptr+1;
+        wsum = {1'b0, wptr} + 1'b1;
+        wptr <= wsum[addr_width:0];
     end
 end
 
 //非空时，memory正常读，也要加个预警位
-always@(posedge rclk or negedge rst_n)begin
+always@(posedge rclk or negedge rst_n)begin : rport
+    reg [addr_width+1:0] rsum;
     if(!rst_n) begin
         rptr<=0;
     end
     else if(!empty && rd_en) begin
         rdata<=memory[rptr[addr_width-1:0]];
-        rptr<=rptr+1;
+        rsum = {1'b0, rptr} + 1'b1;
+        rptr <= rsum[addr_width:0];
     end
 end
 
