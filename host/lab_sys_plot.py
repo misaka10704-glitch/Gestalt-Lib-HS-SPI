@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
-"""lab_sys 示波：样点时间轴（非主机 RX 墙钟）。
+"""lab_sys 示波：样点时间轴 + 相位密度热力图。
 
-时间轴 t = 绝对样点下标 / fs（µs），不是窗内相对 0..xlen：
+时间轴 t = 绝对样点下标 / fs（µs）：
   - Live：历史摊平后右对齐取 xlen
-  - Pause：a/d 以 ±1/4 帧（样点数）细移；红线 = 帧界绝对位置，随窗移动
+  - Pause：a/d 以 ±1/4 帧细移；红线 = 帧界
 
-按 e =「相位密度图」：
-  多帧峰值对齐后，按一个周期折叠，画 (相位 × 样点值) 出现次数热力图。
-  亮带细 = 对齐后各帧差不多；亮带胖/散 = 帧间差得大。
-
-禁止用 host RX 的 ~20ms 间隙当「连续时间」。
+按 e = 相位密度（失真/帧间散布）：
+  多帧峰值对齐 → 一周期折叠 → (相位 × 样点值) 出现次数热力图。
+  亮带细 = 帧间接近；亮带胖 = 差得大。
 """
 
 from __future__ import annotations
@@ -31,10 +29,11 @@ except ImportError:
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib import font_manager
+from matplotlib.font_manager import FontProperties
 
 
-def _setup_chinese_font() -> str | None:
-    """macOS/常见中文字体；解决标题方框（tofu）。"""
+def _setup_chinese_font() -> tuple[str | None, FontProperties | None]:
+    """按文件路径加载 CJK 字体（仅设 name 时 macOS .ttc 常仍方框）。"""
     prefer = (
         "Songti SC",
         "Hiragino Sans GB",
@@ -44,26 +43,41 @@ def _setup_chinese_font() -> str | None:
         "PingFang SC",
         "Noto Sans CJK SC",
     )
-    available = {f.name for f in font_manager.fontManager.ttflist}
+    by_name = {f.name: f.fname for f in font_manager.fontManager.ttflist}
+    path = None
     chosen = None
     for name in prefer:
-        if name in available:
-            chosen = name
+        if name in by_name:
+            chosen, path = name, by_name[name]
             break
-    if chosen is None:
+    if path is None:
         for f in font_manager.fontManager.ttflist:
             n = f.name
             if any(k in n for k in ("Song", "Hei", "CJK", "PingFang", "Hiragino")):
-                chosen = n
+                chosen, path = n, f.fname
                 break
-    if chosen:
-        plt.rcParams["font.sans-serif"] = [chosen, "DejaVu Sans"]
-        plt.rcParams["font.family"] = "sans-serif"
-        plt.rcParams["axes.unicode_minus"] = False
-    return chosen
+    if not path:
+        return None, None
+    try:
+        font_manager.fontManager.addfont(path)
+    except Exception:
+        pass
+    fp = FontProperties(fname=path)
+    # 部分后端吃 family 名，部分吃 fname；两边都设
+    plt.rcParams["font.family"] = fp.get_name()
+    plt.rcParams["font.sans-serif"] = [fp.get_name(), "DejaVu Sans"]
+    plt.rcParams["axes.unicode_minus"] = False
+    return chosen or fp.get_name(), fp
 
 
-_CJK_FONT = _setup_chinese_font()
+_CJK_FONT, _CJK_FP = _setup_chinese_font()
+
+
+def _cjk(**kwargs):
+    """给 Text/title/label 带上中文字体。"""
+    if _CJK_FP is not None:
+        kwargs.setdefault("fontproperties", _CJK_FP)
+    return kwargs
 
 from uart_wave_plot import list_serial_ports, open_serial, pick_default_port
 
@@ -476,12 +490,7 @@ def main() -> None:
     else:
         print("警告: 未找到中文字体，标题可能显示为方框", flush=True)
     print(
-        "X=time(µs) by sample index. xlen≤N: one snap. xlen>N: strip of snaps (NaN breaks).",
-        flush=True,
-    )
-    print(
-        "NOTE: each UART frame is an independent SPI capture — PLL noise frames "
-        "are NOT continuous in time; a/d jumps look unrelated by design.",
+        "X=样点时间轴(µs)。xlen≤N: 单帧；xlen>N: 多帧条带（红线=帧界）。",
         flush=True,
     )
     print(
@@ -599,12 +608,12 @@ def main() -> None:
         vmax=1,
     )
     ax.set_ylim(-5, 260)
-    ax.set_xlabel(f"time (µs)  ·  样点下标  ·  fs={args.fs:g} Hz")
-    ax.set_ylabel("样点值")
-    ax.set_title("lab_sys  ·  红线 = UART 帧界")
+    ax.set_xlabel(f"time (µs)  ·  样点下标  ·  fs={args.fs:g} Hz", **_cjk())
+    ax.set_ylabel("样点值", **_cjk())
+    ax.set_title("lab_sys  ·  红线 = UART 帧界", **_cjk())
     ax.grid(True, alpha=0.25)
     # 状态放左上；标签放左下，避免与右上红字重叠
-    status = ax.text(0.02, 0.98, "", transform=ax.transAxes, va="top", ha="left", zorder=5, fontsize=9)
+    status = ax.text(0.02, 0.98, "", transform=ax.transAxes, va="top", ha="left", zorder=5, fontsize=9, **_cjk())
     frame_tag = ax.text(
         0.02,
         0.02,
@@ -616,6 +625,7 @@ def main() -> None:
         color="#b00020",
         fontweight="bold",
         zorder=5,
+        **_cjk(),
     )
 
     def clear_boundaries() -> None:
@@ -878,11 +888,12 @@ def main() -> None:
             )
             ax.set_xlim(0, period)
             ax.set_ylim(-5, 260)
-            ax.set_ylabel("样点值 0..255")
+            ax.set_ylabel("样点值 0..255", **_cjk())
             filt = {1: "全部", 2: "慢SYS", 3: "快PLL"}[eye_m]
-            ax.set_title(f"相位密度（{filt}）· 亮=出现多 · 细带=帧间接近")
+            ax.set_title(f"相位密度（{filt}）· 亮=出现多 · 细带=帧间接近", **_cjk())
             ax.set_xlabel(
-                f"相位 0..{period - 1}（峰值已旋到 0）· fs={args.fs:g}"
+                f"相位 0..{period - 1}（峰值已旋到 0）· fs={args.fs:g}",
+                **_cjk(),
             )
             frame_tag.set_text(f"n={n_used}  rms={rms:.1f}")
             note = f"密度/{filt}"
@@ -898,7 +909,7 @@ def main() -> None:
             else:
                 f_txt = f"wave={wave_hz:.1f}Hz"
             tag += f" rms={rms:.1f}"
-            indep = " | 相位密度=对齐后分布"
+            indep = ""
         else:
             set_density_mode(False)
             dens_mean.set_data([], [])
@@ -929,15 +940,17 @@ def main() -> None:
                 t0, tmax = 0.0, max(win * dt_us(), dt_us())
                 ax.set_xlim(0, tmax)
             ax.set_ylim(-5, 260)
-            ax.set_ylabel("样点值")
-            ax.set_title("lab_sys  ·  红线 = UART 帧界")
+            ax.set_ylabel("样点值", **_cjk())
+            ax.set_title("lab_sys  ·  红线 = UART 帧界", **_cjk())
             if nfr > 1 or bounds:
                 ax.set_xlabel(
-                    f"time (µs)  · 红线=帧界  ·  a/d ±¼帧 · e=相位密度  ·  fs={args.fs:g}"
+                    f"time (µs)  · 红线=帧界  ·  a/d ±¼帧 · e=相位密度  ·  fs={args.fs:g}",
+                    **_cjk(),
                 )
             else:
                 ax.set_xlabel(
-                    f"time (µs)  · 单帧快照 · e=相位密度  ·  fs={args.fs:g}"
+                    f"time (µs)  · 单帧快照 · e=相位密度  ·  fs={args.fs:g}",
+                    **_cjk(),
                 )
             y_for_f = [int(v) for v in ys if v == v]
             wave_hz = estimate_wave_hz(y_for_f, args.fs)
@@ -949,9 +962,9 @@ def main() -> None:
                 f_txt = f"wave={wave_hz:.1f}Hz"
             indep = ""
             if mode == "PLL" and view_err > 10:
-                indep = " | snaps UNRELATED (SPI fail)"
+                indep = " | SPI 错帧多"
             elif corr < 0.15 and nfr >= 1 and mode != "?":
-                indep = " | low corr=independent captures"
+                indep = " | 帧间相关低"
 
         wait_txt = ""
         if ok == 0:
