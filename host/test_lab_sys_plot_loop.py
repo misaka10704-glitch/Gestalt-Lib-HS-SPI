@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
-"""自测 lab_sys_plot 显示逻辑。"""
+"""自测 lab_sys_plot：绝对时间轴 + 细移时红线平移。"""
 
 from __future__ import annotations
-
-import math
-import sys
 
 import lab_sys_plot as P
 
 FS = 1e6
-SINE = [P.estimate_wave_hz.__doc__ and 0]  # placemarker
 
 
 def sine(n=128, ph=0):
@@ -22,42 +18,37 @@ def sine(n=128, ph=0):
     return [lut[(ph + i) % 64] for i in range(n)]
 
 
-def fail(msg):
-    raise AssertionError(msg)
-
-
 def main() -> int:
     frames = [
-        {"seq": i, "n": 128, "err": 100, "fast": 1, "samples": sine(128, i * 17)}
+        {"seq": i, "n": 128, "err": 0, "fast": 0, "samples": sine(128, i * 8)}
         for i in range(4)
     ]
-    # xlen=128 → 1 frame
-    ts, ys, nfr, note, bounds = P.build_view(frames, 3, 128, FS, False)
-    assert nfr == 1 and note == "1-snap" and bounds == [], (nfr, note, bounds)
-    assert abs(ts[-1] - 127.0) < 1e-6, ts[-1]
+    flat, bounds, _ = P.flatten_frames(frames, False)
+    assert len(flat) == 512 and bounds == [128, 256, 384], (len(flat), bounds)
 
-    # xlen=256 → 2 frames, axis ~255µs, has NaN break + boundary
-    ts2, ys2, nfr2, note2, bounds2 = P.build_view(frames, 3, 256, FS, False)
-    assert nfr2 == 2 and "strip" in note2, (nfr2, note2)
-    assert any(isinstance(t, float) and math.isnan(t) for t in ts2), "need NaN break"
-    assert len(bounds2) == 1, f"need 1 red-line boundary, got {bounds2}"
-    finite = [t for t in ts2 if t == t]
-    assert finite[-1] > 200, f"axis should grow: last={finite[-1]}"
+    ts0, ys0, _, _, bt0, off0 = P.build_view(
+        frames, 3, 256, FS, False, sample_offset=0
+    )
+    assert off0 == 0 and abs(ts0[0] - 0.0) < 1e-9
+    assert [round(t) for t in bt0] == [128, 256], bt0
 
-    # xlen=512 → 4 frames, still longer
-    ts4, _, nfr4, _, bounds4 = P.build_view(frames, 3, 512, FS, False)
-    finite4 = [t for t in ts4 if t == t]
-    assert nfr4 == 4 and finite4[-1] > finite[-1], "512 must be longer than 256"
-    assert len(bounds4) == 3, f"3 boundaries for 4 frames, got {bounds4}"
+    # 半帧细移：红线绝对位置不变，窗起点变 → 屏上线会动
+    ts1, ys1, _, _, bt1, off1 = P.build_view(
+        frames, 3, 256, FS, False, sample_offset=64
+    )
+    assert off1 == 64 and abs(ts1[0] - 64.0) < 1e-9 and len(ys1) == 256
+    assert abs(bt1[0] - 128.0) < 1e-6, bt1  # 仍在绝对 128µs
+    assert abs(bt1[0] - ts1[0] - 64.0) < 1e-6  # 相对窗左缘 = 64µs
 
-    a = list(range(128))
-    b = list(range(128, 0, -1))
-    c = P.frame_corr(a, b)
-    assert c < 0.05, f"corr={c}"
-    assert P.frame_corr(a, a) == 1.0
+    # 再移 32：红线绝对仍在 128/256…，窗左缘 96 → 相对位置再变
+    ts2, _, _, _, bt2, off2 = P.build_view(
+        frames, 3, 256, FS, False, sample_offset=96
+    )
+    assert off2 == 96 and abs(ts2[0] - 96.0) < 1e-9
+    assert abs(bt2[0] - 128.0) < 1e-6
+    assert abs(bt2[0] - ts2[0] - 32.0) < 1e-6
 
-    print("OK: xlen 128/256/512 grows strip; clutter frames uncorrelated by design")
-    print(f"    256 last_t={finite[-1]:.0f}µs  512 last_t={finite4[-1]:.0f}µs  corr={c:.2f}")
+    print("OK: abs-time axis; scrub moves window under fixed absolute red lines")
     return 0
 
 

@@ -18,8 +18,9 @@ module sine_gen#(
     output reg sample_stb
 );
 
-localparam integer DIV = CLK_FREQ / SAMPLE_HZ;
-localparam CNT_W = $clog2(DIV);
+localparam integer DIV = (SAMPLE_HZ == 0) ? 1 : (CLK_FREQ / SAMPLE_HZ);
+localparam integer DIV_SAFE = (DIV < 1) ? 1 : DIV;
+localparam CNT_W = (DIV_SAFE <= 1) ? 1 : $clog2(DIV_SAFE);
 
 // round(127.5 + 127.5*sin(2*pi*k/64)), k=0..63
 function automatic [7:0] sine_lut;
@@ -110,7 +111,7 @@ always@(posedge clk or negedge rst_n)begin
         if(!enable)begin
             div_cnt<=0;
         end
-        else if(div_cnt == DIV-1)begin
+        else if(div_cnt == DIV_SAFE-1)begin
             div_cnt<=0;
             sample_stb<=1;
             sample<=sine_lut(phase);

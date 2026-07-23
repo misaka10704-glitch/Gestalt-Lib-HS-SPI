@@ -15,9 +15,10 @@ module lab_sys_core#(
     parameter ADC_CLK_HZ = 1_000_000,
     parameter FRAME_N = 128,
     parameter SPI_CLK_DIV = 4,       // use_fast=0 时半周期计数
-    parameter SPI_CLK_DIV_FAST = 4,  // use_fast=1；ext 上 eng=200M 时 DIV=16/4 → 6.25/25M
+    parameter SPI_CLK_DIV_FAST = 4,  // use_fast=1；ext eng=200M 时 DIV=16/2 → 6.25/50M
     parameter SPI_PULSE_HOLD = 8,
     parameter SPI_TIMEOUT_CYCLES = 200_000,
+    parameter SAMP_TIMEOUT_CYCLES = 2_000_000, // 防 AFIFO 空等卡死 → 无 UART
     parameter AFIFO_DEPTH = 512,
     parameter WAVE_SEL = 1
 )
@@ -25,10 +26,10 @@ module lab_sys_core#(
     input wire clk,
     input wire rst_n,
     input wire enable,
-    input wire use_fast,      // ext：1=开 PLL eng；0=sys eng（同速率分频由顶层参数配对）
-    input wire pll_clk,       // rPLL 钟；关 PLL 时 Master 用 clk
+    input wire use_fast,      // 1=快分频加压；0=慢分频。eng 始终为 pll_clk
+    input wire pll_clk,       // Master eng（sys 或 rPLL，由顶层接线，运行时不切）
     input wire pll_locked,
-    output wire fast_on,      // 本帧实际 eng=pll（UART ERR bit7）
+    output wire fast_on,      // 本帧实际用快分频（UART ERR bit7）
     output wire uart_tx,
     output wire busy,
     output wire pulse_frame,
@@ -176,12 +177,12 @@ reg [7:0] spi_rx_buf [0:N-1];
 reg [7:0] spi_rx_cnt;
 reg spi_rx_full;
 
-// eng 与 Master 一致：本帧 fast_on_r 锁定后 eng= pll 或 sys
+// eng 与 Master 一致：固定 pll_clk，避免 clk↔pll 复用切钟卡死
 wire [7:0] m_tx_data = adc_buf[spi_tx_idx_eng];
 
 reg fast_on_r;
 assign fast_on = fast_on_r;
-wire eng_clk = fast_on_r ? pll_clk : clk;
+wire eng_clk = pll_clk;
 
 reg start_toggle;
 reg [2:0] start_sync_eng;
@@ -324,6 +325,7 @@ reg [7:0] cmp_i;
 reg [7:0] err_byte;
 reg err_sticky;
 reg [31:0] spi_wait_cnt;
+reg [31:0] samp_wait_cnt;
 reg spi_saw_busy;
 reg [3:0] arm_cnt;
 
@@ -372,6 +374,7 @@ always@(posedge clk or negedge rst_n)begin
         start_toggle<=0;
         fast_on_r<=0;
         spi_wait_cnt<=0;
+        samp_wait_cnt<=0;
         spi_saw_busy<=0;
         arm_cnt<=0;
         for(i=0;i<N;i=i+1)begin
@@ -423,6 +426,7 @@ always@(posedge clk or negedge rst_n)begin
             else begin
                 adc_cnt<=0;
                 spi_rx_full<=0;
+                samp_wait_cnt<=0;
                 adc_run<=1;
                 state<=S_SAMP;
             end
@@ -440,6 +444,7 @@ always@(posedge clk or negedge rst_n)begin
                         spi_rx_buf[i]<=8'd0;
                     fast_on_r<=use_fast & pll_locked;
                     arm_cnt<=0;
+                    samp_wait_cnt<=0;
                     state<=S_ARM;
                 end
                 else
@@ -449,10 +454,29 @@ always@(posedge clk or negedge rst_n)begin
                 af_rd_en<=1;
                 af_rd_pend<=1;
             end
+            else if(SAMP_TIMEOUT_CYCLES != 0)begin
+                if(samp_wait_cnt >= SAMP_TIMEOUT_CYCLES[31:0])begin
+                    // AFIFO 一直空：仍推进，避免整板无 UART
+                    adc_run<=0;
+                    for(i=0;i<N;i=i+1)
+                        adc_buf[i]<=8'd0;
+                    spi_rx_full<=0;
+                    spi_rx_cnt<=0;
+                    for(i=0;i<N;i=i+1)
+                        spi_rx_buf[i]<=8'd0;
+                    fast_on_r<=use_fast & pll_locked;
+                    err_sticky<=1;
+                    arm_cnt<=0;
+                    samp_wait_cnt<=0;
+                    state<=S_ARM;
+                end
+                else
+                    samp_wait_cnt<=samp_wait_cnt+32'd1;
+            end
         end
 
         S_ARM:begin
-            // 多等几拍，让 Master IDLE 采到新的 use_fast_d / eng
+            // 多等几拍，让 Master IDLE 采到新的 use_fast_d
             if(arm_cnt >= 4'd15)begin
                 start_toggle<=~start_toggle;
                 spi_wait_cnt<=0;
@@ -466,7 +490,8 @@ always@(posedge clk or negedge rst_n)begin
         S_SPI:begin
             if(m_busy)
                 spi_saw_busy<=1'b1;
-            if(spi_saw_busy && !m_busy && !m_start && spi_rx_full)begin
+            // Master 结束即组帧；勿死等 spi_rx_full（飞线丢字节时会空等 TIMEOUT）
+            if(spi_saw_busy && !m_busy && !m_start)begin
                 cmp_i<=0;
                 err_byte<=0;
                 spi_wait_cnt<=0;

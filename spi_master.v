@@ -1,14 +1,17 @@
 `timescale 1ns / 1ps
 
 /*
-SPI Master：eng 在 IDLE 锁定
-  use_fast=0 → eng=clk，分频 CLK_DIV
-  use_fast=1 → eng=pll_clk（需 locked），分频 CLK_DIV_FAST
+SPI Master：eng 固定为 pll_clk（由顶层接 sys 或 rPLL，运行时不切钟）
 
-lab_sys_ext 用法（同速率 PLL 前后）：
-  关 PLL：sys 50M / DIV=2  → SCLK=12.5M
-  开 PLL：200M / DIV=8     → SCLK=12.5M
-只在 ST_IDLE 改 use_fast_d，避免传输出途切钟。
+use_fast：只选分频（在 ST_IDLE 锁存）
+  0 → CLK_DIV
+  1 → CLK_DIV_FAST
+
+lab_sys_ext（eng=200M）：
+  关加压：DIV=16 → SCLK=6.25M
+  开加压：DIV=2  → SCLK=50M
+
+勿再把 eng 在 clk/pll 间 LUT 复用——切钟易导致 Master/CDC 卡死、整链无 UART。
 */
 module spi_master#(
     parameter CPOL = 1'b0,
@@ -20,7 +23,7 @@ module spi_master#(
     parameter PULSE_HOLD = 1
 )
 (
-    input wire clk,
+    input wire clk, // 保留端口；eng 不用它
     input wire rst_n,
     input wire use_fast,
     input wire pll_clk,
@@ -43,9 +46,8 @@ module spi_master#(
     input wire [DATA_DEEPTH-1:0] tx_data
 );
 
-reg use_fast_d;
-wire eng_clk = use_fast_d ? pll_clk : clk;
-wire eng_ok  = use_fast_d ? pll_locked : 1'b1;
+wire eng_clk = pll_clk;
+wire eng_ok  = pll_locked;
 
 localparam DIV_MAX = (CLK_DIV_FAST > CLK_DIV) ? CLK_DIV_FAST : CLK_DIV;
 // 计数 0..DIV-1；勿把 DIV 塞进 $clog2(DIV)（16→截成 0）
@@ -73,6 +75,7 @@ reg leading_is_sample;
 reg [HOLD_W-1:0] bd_hold;
 reg [HOLD_W-1:0] css_hold;
 reg [HOLD_W-1:0] cse_hold;
+reg use_fast_d;
 wire [CNT_W-1:0] div_last = use_fast_d
     ? (CLK_DIV_FAST[CNT_W:0] - 1'b1)
     : (CLK_DIV[CNT_W:0] - 1'b1);
