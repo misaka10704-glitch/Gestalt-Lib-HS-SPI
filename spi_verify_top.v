@@ -100,10 +100,12 @@ spi_master#(
     .DATA_DEEPTH(DATA_DEEPTH),
     .LSB_First(LSB_First),
     .CLK_DIV(CLK_DIV),
-    .USE_PLL(USE_PLL)
+    .CLK_DIV_FAST(CLK_DIV),
+    .PULSE_HOLD(1)
 ) u_master (
     .clk(clk),
     .rst_n(rst_n),
+    .use_fast(USE_PLL != 0),
     .pll_clk(pll_clk),
     .pll_locked(pll_locked),
     .sclk(m_sclk),

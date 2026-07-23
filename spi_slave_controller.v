@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module spi_slave_controller
 #(
     parameter CPOL = 1'b0,

@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module spi_slave_shift#(
     parameter DATA_DEEPTH = 8,
     parameter LSB_First = 0 //要考虑哪边进：0=MSB first，1=LSB first

@@ -23,6 +23,7 @@ wire [7:0] spi_err_cnt;
 wire spi_sclk_o, spi_mosi_o, spi_cs_n, spi_miso;
 wire spi_sclk_i = spi_sclk_o;
 wire spi_mosi_i = spi_mosi_o;
+wire fast_on_nc;
 
 lab_sys_core#(
     .CLK_FREQ(CLK_FREQ),
@@ -30,12 +31,17 @@ lab_sys_core#(
     .ADC_CLK_HZ(1_000_000),
     .FRAME_N(128),
     .SPI_CLK_DIV(4),
+    .SPI_CLK_DIV_FAST(4),
     .AFIFO_DEPTH(512),
     .WAVE_SEL(1)
 ) u_core (
     .clk(sys_clk),
     .rst_n(key[0]),
     .enable(enable),
+    .use_fast(1'b0),
+    .pll_clk(sys_clk),
+    .pll_locked(1'b1),
+    .fast_on(fast_on_nc),
     .uart_tx(uart_tx),
     .busy(core_busy),
     .pulse_frame(pulse_frame),
